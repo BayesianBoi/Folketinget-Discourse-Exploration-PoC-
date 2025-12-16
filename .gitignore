@@ -1,2 +1,14 @@
 data/Corpus_speeches_denmark.RDS
-data/Corpus_speeches_denmark.RDS
+data/raw/
+data/interim/
+data/processed/
+artifacts/
+env/
+venv/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+*.joblib
+*.npy
+*.parquet
+.env
