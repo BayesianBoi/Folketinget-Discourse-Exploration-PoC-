@@ -64,7 +64,7 @@ class CorpusConfig:
     end_year: int = 2025
     allow_earlier: bool = True
     min_text_length: int = 60
-    sample_size: Optional[int] = 50000
+    sample_size: Optional[int] = None
     column_mapping: Dict[str, str] = field(
         default_factory=lambda: {
             "speech_id": "doc_id",
