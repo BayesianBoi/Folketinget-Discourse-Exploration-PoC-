@@ -16,7 +16,12 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from dk_politics_topics import DEFAULT_CONFIG
+from dk_politics_topics import DEFAULT_CONFIG
 from dk_politics_topics.utils.logging import setup_logging, get_logger
+try:
+    from dashboard.agent import AIAgent
+except ImportError:
+    from agent import AIAgent
 # from dk_politics_topics.modeling.embeddings import load_embedding_model # Helper doesn't exist
 
 st.set_page_config(page_title="Folketinget Discourse Explorer", layout="wide")
@@ -108,7 +113,7 @@ def main():
         st.error("Data not found. Please run the pipeline first!")
         return
 
-    tabs = st.tabs(["📊 Overview", "🏛️ Party Analysis", "🔎 Semantic Search", "📝 Topic Inspection"])
+    tabs = st.tabs(["📊 Overview", "🏛️ Party Analysis", "🔎 Semantic Search", "📝 Topic Inspection", "🤖 AI Analyst"])
 
     # --- TAB 1: OVERVIEW ---
     with tabs[0]:
@@ -370,6 +375,49 @@ def main():
             for idx, row in subset.iterrows():
                 st.markdown(f"**{row['party']} ({row['time_bin']})**: {row['text']}")
                 st.divider()
+
+    # --- TAB 5: AI AGENT ---
+    with tabs[4]:
+        st.header("Ask the AI Political Analyst")
+        
+        # Initialize Agent (needs embedding model)
+        # We reuse the one from Semantic Search if available, or load fresh
+        ss_model, ss_embeddings = get_semantic_search_model(cfg)
+        
+        if "agent" not in st.session_state:
+             st.session_state.agent = AIAgent(df, df_docs, terms, ss_model, ss_embeddings)
+             st.session_state.messages = []
+
+        # Display Chat History
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+        if len(st.session_state.messages) == 0:
+            st.markdown("### Try asking:")
+            cols = st.columns(2)
+            with cols[0]:
+                st.info("What is the 'Klima' topic about?")
+                st.info("How does Venstre feel about 'Skattepolitik'?")
+            with cols[1]:
+                st.info("When was 'Udlændinge' most discussed?")
+                st.info("Compare Socialdemokratiet and SF on 'Velfærd'")
+
+        # Chat Input
+        if prompt := st.chat_input("Ask about topics, parties, or trends..."):
+            # Display user message
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            
+            # Get response
+            with st.spinner("Analyzing data..."):
+                response = st.session_state.agent.answer(prompt)
+            
+            # Display AI message
+            with st.chat_message("assistant"):
+                st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__ == "__main__":
     main()
