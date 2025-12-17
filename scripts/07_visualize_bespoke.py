@@ -105,9 +105,10 @@ def main():
     prevalence_party["prevalence"] = prevalence_party["count"] / prevalence_party["party_year_total"]
     
     # Facet by Party (showing what topics they talk about)
-    # We'll limit to top parties to ensure readability if there are too many small ones
-    top_parties = df_merged["party"].value_counts().nlargest(9).index.tolist()
-    prevalence_party_filtered = prevalence_party[prevalence_party["party"].isin(top_parties)]
+    # Facet by Party (showing what topics they talk about)
+    # User requested ALL parties.
+    top_parties = df_merged["party"].unique().tolist()
+    prevalence_party_filtered = prevalence_party # No filtering
     
     fig2 = px.line(
         prevalence_party_filtered,
@@ -128,10 +129,18 @@ def main():
     # ---------------------------------------------------------
     logger.info("Generating Plot 3: Sentiment Distributions...")
     # Calculate sentiment
-    logger.info("Calculating sentiment for documents (using configured provider)...")
-    provider = resolve_provider(cfg.sentiment)
-    # This might take a moment
-    df_scored = score_documents(df_merged, "text", provider)
+    logger.info("Loading pre-calculated sentiment scores...")
+    sentiment_path = cfg.paths.exports_dir / "sentiment_scores.parquet"
+    
+    if sentiment_path.exists():
+        df_sentiment = pd.read_parquet(sentiment_path)
+        # Merge sentiment into df_merged
+        df_scored = df_merged.merge(df_sentiment[["doc_id", "sentiment"]], on="doc_id", how="left")
+        logger.info("Loaded sentiment scores from disk.")
+    else:
+        logger.warning("Sentiment scores not found on disk. Recalculating (this may be slow)...")
+        provider = resolve_provider(cfg.sentiment)
+        df_scored = score_documents(df_merged, "text", provider)
     
     # We want to see how sentiment differs for parties WITHIN specific topics.
     # Facet by Topic, X=Party, Y=Sentiment.

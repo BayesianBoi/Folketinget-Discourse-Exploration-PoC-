@@ -48,7 +48,7 @@ def get_custom_stopwords() -> List[str]:
         "næste", "kl", "klokken", "dag", "år",
         "lovforslag nr", "behandling af", # Phrases might be split by tokenizer, but adding tokens here helps
         
-        # New procedural terms (User Request)
+        # New procedural terms 
         "ordførerrækken", "rækken", "videre", "velkommen", "forslagsstillerne", "går",
         "stemte", "stemmes", "fremsættelse", "ændring", "ændringsforslag", "indsigelse",
         "betragter", "betænkning", "foreslår", "vedtagelse",

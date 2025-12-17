@@ -33,6 +33,24 @@ def clean_dataframe(df: pd.DataFrame, text_col: str, cfg: PreprocessConfig) -> p
         if filtered_count > 0:
             logger.info("Removed %d speeches by ignored speakers (e.g., Formanden)", filtered_count)
 
+    # Filter by minimum length (words)
+    if hasattr(cfg, 'min_words') and cfg.min_words > 0:
+        original_count = len(df)
+        # Use the text_col for word count calculation
+        df["word_count"] = df[text_col].astype(str).apply(lambda x: len(x.split()))
+        df = df[df["word_count"] >= cfg.min_words].drop(columns=["word_count"])
+        filtered_count = original_count - len(df)
+        if filtered_count > 0:
+            logger.warning("Removed %d texts with fewer than %d words", filtered_count, cfg.min_words)
+
+    # Filter by ignored parties
+    if "party" in df.columns and hasattr(cfg, 'ignored_parties') and cfg.ignored_parties:
+        original_count = len(df)
+        df = df[~df["party"].isin(cfg.ignored_parties)]
+        filtered_count = original_count - len(df)
+        if filtered_count > 0:
+            logger.info("Removed %d speeches by ignored parties", filtered_count)
+
     # 2. Clean Text
     df[text_col] = df[text_col].fillna("").astype(str).apply(lambda t: clean_text(t, cfg))
     

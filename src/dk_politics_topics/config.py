@@ -64,7 +64,7 @@ class CorpusConfig:
     end_year: int = 2025
     allow_earlier: bool = True
     min_text_length: int = 60
-    sample_size: Optional[int] = None
+    sample_size: Optional[int] = 20000
     column_mapping: Dict[str, str] = field(
         default_factory=lambda: {
             "speech_id": "doc_id",
@@ -84,6 +84,16 @@ class CorpusConfig:
             "DANSK FOLKEPARTI": "DF",
             "NYE BORGELIGE": "NB",
             "RADIKALE VENSTRE": "RV",
+            "INUIT ATAQATIGIIT": "IA",
+            "KRISTENDEMOKRATERNE": "KD",
+            "MODERATERNE": "M",
+            "NY ALLIANCE": "NY",
+            "FRIE GRØNNE": "FG",
+            "JAVNAÐARFLOKKURIN": "JF",
+            "NUNATTA QITORNAI": "NQ",
+            "SIUMUT": "SIU",
+            "SAMBANDSFLOKKURIN": "SP",
+            "YEAH": "YEAH", # Just in case
         }
     )
     doc_id_prefix: str = "dk"
@@ -111,6 +121,7 @@ class PreprocessConfig:
             "Midlertidig formand",
         ]
     )
+    ignored_parties: List[str] = field(default_factory=lambda: ["-"])
 
 
 @dataclass
@@ -141,19 +152,15 @@ class TopeaxConfig:
     verbose: bool = True
     stopwords: List[str] = field(default_factory=get_combined_stopwords)
     openai_model: Optional[str] = "gpt-5-mini"
+    ignored_topics: List[int] = field(default_factory=list)  # Topics to hide in dashboard
 
 
 @dataclass
 class SentimentConfig:
-    approach: str = "lexicon"
-    huggingface_model: Optional[str] = None
-    neutral_threshold: float = 0.05
-    lexicon_positive: List[str] = field(
-        default_factory=lambda: ["god", "positiv", "bedre", "stærk", "forbedre", "ansvarlig"]
-    )
-    lexicon_negative: List[str] = field(
-        default_factory=lambda: ["dårlig", "negativ", "svag", "problem", "kritik", "truet"]
-    )
+    approach: str = "huggingface"
+    huggingface_model: Optional[str] = "alexandrainst/da-sentiment-base"
+    batch_size: int = 32
+    device: str = "auto"  # auto -> mps/cuda if available
 
 
 @dataclass

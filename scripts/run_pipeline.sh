@@ -16,8 +16,8 @@ python scripts/02_fit_topeax.py
 echo "[run_pipeline] Step 03: analyze prevalence"
 python scripts/03_analyze_prevalence.py
 
-echo "[run_pipeline] Step 04: controversial sentiment"
-python scripts/04_sentiment_controversial.py
+echo "[run_pipeline] Step 04: compute sentiment"
+python scripts/04_compute_sentiment.py
 
 echo "[run_pipeline] Step 05: build exports"
 python scripts/05_build_exports.py
@@ -25,7 +25,5 @@ python scripts/05_build_exports.py
 echo "[run_pipeline] Step 06: visualize topics (wizard)"
 python scripts/06_visualize_topicwizard.py
 
-echo "[run_pipeline] Step 07: generate bespoke static plots"
-python scripts/07_visualize_bespoke.py
 
 echo "[run_pipeline] Done. Artifacts are under artifacts/exports/ and artifacts/plots/."
