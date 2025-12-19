@@ -64,7 +64,10 @@ class CorpusConfig:
     end_year: int = 2025
     allow_earlier: bool = True
     min_text_length: int = 60
-    sample_size: Optional[int] = 20000
+    sample_size: Optional[int] = None
+    # Filter out very small parties globally (share of speeches in the corpus).
+    # Set to 0.0 to keep all parties.
+    min_party_share: float = 0.01
     column_mapping: Dict[str, str] = field(
         default_factory=lambda: {
             "speech_id": "doc_id",
@@ -93,7 +96,7 @@ class CorpusConfig:
             "NUNATTA QITORNAI": "NQ",
             "SIUMUT": "SIU",
             "SAMBANDSFLOKKURIN": "SP",
-            "YEAH": "YEAH", # Just in case
+            "ALTERNATIVET": "ALT", 
         }
     )
     doc_id_prefix: str = "dk"
@@ -131,7 +134,7 @@ class EmbeddingConfig:
     # Scandinavian embedding benchmark), set model_name to that.
     # Benchmark-informed choice: multilingual-e5-base offers strong Scandinavian performance
     # without the heavy footprint of larger TTC-L2V variants.
-    model_name: str = "intfloat/multilingual-e5-small"
+    model_name: str = "intfloat/multilingual-e5-base"
     model_fallback: Optional[str] = "sentence-transformers/all-MiniLM-L6-v2"
     batch_size: int = 64  # smaller model supports larger batch on MPS
     device: str = "auto"  # auto -> mps if available, else cuda, else cpu
@@ -147,7 +150,7 @@ class TopeaxConfig:
     min_df: int = 2
     max_features: int = 8000
     top_k_terms: int = 12
-    embedding_model: Optional[str] = "intfloat/multilingual-e5-small"
+    embedding_model: Optional[str] = "intfloat/multilingual-e5-base"
     use_fallback_if_missing: bool = True
     verbose: bool = True
     stopwords: List[str] = field(default_factory=get_combined_stopwords)
@@ -157,10 +160,12 @@ class TopeaxConfig:
 
 @dataclass
 class SentimentConfig:
+    # Transformer-based sentiment only (no lexicon fallback).
     approach: str = "huggingface"
     huggingface_model: Optional[str] = "alexandrainst/da-sentiment-base"
     batch_size: int = 32
     device: str = "auto"  # auto -> mps/cuda if available
+    neutral_threshold: float = 0.05
 
 
 @dataclass

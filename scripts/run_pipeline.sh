@@ -22,8 +22,7 @@ python scripts/04_compute_sentiment.py
 echo "[run_pipeline] Step 05: build exports"
 python scripts/05_build_exports.py
 
-echo "[run_pipeline] Step 06: visualize topics (wizard)"
-python scripts/06_visualize_topicwizard.py
-
-
 echo "[run_pipeline] Done. Artifacts are under artifacts/exports/ and artifacts/plots/."
+
+# Optional (manual): topic wizard visualization
+# python scripts/06_visualize_topicwizard.py

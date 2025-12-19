@@ -68,3 +68,32 @@ def clean_dataframe(df: pd.DataFrame, text_col: str, cfg: PreprocessConfig) -> p
         df = df.loc[~too_short_words].copy()
         
     return df
+
+
+def filter_parties_by_min_share(df: pd.DataFrame, party_col: str, min_share: float) -> pd.DataFrame:
+    """Drop parties that make up less than `min_share` of rows.
+
+    Intended as a corpus-level filter to reduce noise from very small parties.
+    """
+    if min_share is None or float(min_share) <= 0:
+        return df
+    if party_col not in df.columns:
+        return df
+
+    shares = df[party_col].value_counts(normalize=True, dropna=False)
+    keep = shares[shares >= float(min_share)].index
+    removed = shares[shares < float(min_share)]
+    if removed.empty:
+        return df
+
+    before = len(df)
+    df = df[df[party_col].isin(keep)].copy()
+    after = len(df)
+    removed_parties = ", ".join(f"{p} ({s:.2%})" for p, s in removed.items())
+    logger.info(
+        "Removed %d speeches from parties below %.2f%% share: %s",
+        before - after,
+        float(min_share) * 100.0,
+        removed_parties,
+    )
+    return df

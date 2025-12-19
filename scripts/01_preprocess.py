@@ -10,7 +10,7 @@ if str(SRC) not in sys.path:
 
 from dk_politics_topics import DEFAULT_CONFIG
 from dk_politics_topics.io import load_and_validate
-from dk_politics_topics.preprocess import add_time_bins, clean_dataframe
+from dk_politics_topics.preprocess import add_time_bins, clean_dataframe, filter_parties_by_min_share
 from dk_politics_topics.utils.logging import get_logger, setup_logging
 
 
@@ -30,6 +30,7 @@ def main() -> None:
 
     df = clean_dataframe(df, text_col="text", cfg=cfg.preprocess)
     df = add_time_bins(df, freq="year", date_col="date", label_col="time_bin")
+    df = filter_parties_by_min_share(df, party_col="party", min_share=cfg.corpus.min_party_share)
 
     output_path = cfg.paths.processed_dir / "preprocessed.parquet"
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -23,6 +23,10 @@ def validate_corpus_df(df: pd.DataFrame, schema: CorpusSchema | None = None) -> 
     schema = schema or CorpusSchema()
     issues: List[str] = []
 
+    initial_duplicates = 0
+    if "doc_id" in df.columns:
+        initial_duplicates = int(df["doc_id"].duplicated().sum())
+
     missing = [c for c in schema.required_columns if c not in df.columns]
     if missing:
         issues.append(f"Mangler kolonner: {missing}")
@@ -45,10 +49,9 @@ def validate_corpus_df(df: pd.DataFrame, schema: CorpusSchema | None = None) -> 
             df = df.loc[~too_short].copy()
 
     if "doc_id" in df.columns:
-        duplicates = df["doc_id"].duplicated().sum()
-        if duplicates:
-            issues.append(f"{duplicates} duplikerede doc_id fjernet")
-            df = df.drop_duplicates(subset="doc_id").copy()
+        if initial_duplicates:
+            issues.append(f"{initial_duplicates} duplikerede doc_id fjernet")
+        df = df.drop_duplicates(subset="doc_id").copy()
 
     unexpected_cols = [c for c in df.columns if c not in schema.all_columns()]
     if unexpected_cols:

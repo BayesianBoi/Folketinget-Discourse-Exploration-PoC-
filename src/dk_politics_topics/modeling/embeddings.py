@@ -29,6 +29,9 @@ def _resolve_device(preferred: str) -> str:
             return "cuda"
     return "cpu"
 
+def _use_e5_prefixes(model_name: str) -> bool:
+    return "e5" in (model_name or "").lower()
+
 
 def embed_texts(
     texts: Iterable[str],
@@ -37,7 +40,16 @@ def embed_texts(
 ) -> np.ndarray:
     """Compute sentence-transformer embeddings with optional caching."""
     texts_list = list(texts)
-    cache_name = cfg.cache_name or hash_config({"model": cfg.model_name, "n": len(texts_list)})
+
+    # E5 models are trained with role prefixes: "query: ..." and "passage: ...".
+    # Here we embed corpus documents, so we use the "passage" format.
+    doc_prefix = "passage" if _use_e5_prefixes(cfg.model_name) else ""
+    if doc_prefix:
+        texts_list = [f"{doc_prefix}: {t}" for t in texts_list]
+
+    cache_name = cfg.cache_name or hash_config(
+        {"model": cfg.model_name, "n": len(texts_list), "doc_prefix": doc_prefix}
+    )
 
     if cfg.cache_embeddings:
         cached = maybe_load_numpy(paths.embeddings_dir, cache_name)

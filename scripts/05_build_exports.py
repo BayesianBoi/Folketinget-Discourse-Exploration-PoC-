@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -12,7 +13,6 @@ from dk_politics_topics import DEFAULT_CONFIG
 from dk_politics_topics.utils.cache import save_json
 from dk_politics_topics.utils.logging import get_logger, setup_logging
 from dk_politics_topics.viz import (
-    plot_controversial_sentiment,
     plot_party_comparison,
     plot_prevalence_over_time,
 )
@@ -32,12 +32,20 @@ def main() -> None:
 
     df = pd.read_parquet(processed_path)
     prevalence = pd.read_parquet(prevalence_path)
-    controversial = pd.read_parquet(controversial_path)
+    controversial = pd.DataFrame()
+    if controversial_path.exists():
+        controversial = pd.read_parquet(controversial_path)
+    else:
+        logger.info(
+            "Controversial sentiment export not found at %s; skipping (deprecated output).",
+            controversial_path,
+        )
     doc_topics = pd.read_parquet(doc_topics_path)
     import json
     topics_payload = json.loads(topics_json_path.read_text(encoding="utf-8"))
 
     metadata = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "config": cfg.as_dict(),
         "corpus": {
             "rows": len(df),
@@ -124,14 +132,12 @@ def main() -> None:
     else:
         logger.warning("Prevalence dataframe is empty; skipping prevalence plots.")
 
+    # Deprecated: controversial sentiment plots (older approach)
     if len(controversial):
-        plot_controversial_sentiment(
-            controversial,
-            output_path=cfg.paths.plots_dir / "controversial_sentiment.html",
-            time_bin_col="time_bin",
+        logger.info(
+            "Controversial sentiment dataframe is present (%d rows) but plotting is disabled (deprecated).",
+            len(controversial),
         )
-    else:
-        logger.warning("Controversial sentiment dataframe is empty; skipping sentiment plots.")
 
     logger.info("Export build complete")
 
