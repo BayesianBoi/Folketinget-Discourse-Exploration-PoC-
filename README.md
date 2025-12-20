@@ -14,9 +14,10 @@ This tool is designed for **exploratory research** into Danish political rhetori
 It bridges the gap between quantitative data science (topic modeling, embeddings) and qualitative political science.
 
 ## 💾 Data Availability
-The pipeline is designed to work with the **Danish Legislative Speech Corpus** by Frederik Hjorth (University of Copenhagen). 
-- **Original Dataset**: [Danish Legislative Speech Corpus V2 (Harvard Dataverse)](https://doi.org/10.7910/DVN/PNCBKF)
-- **Format**: The pipeline expects the `.RDS` or `.parquet` file from this dataset.
+The pipeline is designed to work with the **ParlLawSpeech** dataset.
+- **Source**: [ParlLawSpeech Project](https://parllawspeech.org/about/)
+- **Instructions**: Download the Danish corpus (`Corpus_speeches_denmark.RDS`) and place it in the `data/raw/` directory.
+- **Format**: The pipeline expects the `.RDS` or `.parquet` file.
 
 ---
 
