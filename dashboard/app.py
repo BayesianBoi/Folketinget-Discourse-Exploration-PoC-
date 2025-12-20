@@ -773,6 +773,19 @@ def main():
         speech_count = len(df[df["top_topic_id"] == target_tid])
         st.metric("Total Speeches", f"{speech_count:,}")
 
+        # Download button for topic data
+        topic_speeches = df[df["top_topic_id"] == target_tid].copy()
+        # Ensure we export useful columns
+        export_cols = [c for c in ["doc_id", "year", "date", "party", "text"] if c in topic_speeches.columns]
+        csv_data = topic_speeches[export_cols].to_csv(index=False).encode('utf-8-sig')
+        
+        st.download_button(
+            label="Download Speeches (.csv)",
+            data=csv_data,
+            file_name=f"topic_{target_tid}_speeches.csv",
+            mime="text/csv",
+        )
+
         st.subheader("Top Terms (Word Cloud)")
 
         if terms_list:

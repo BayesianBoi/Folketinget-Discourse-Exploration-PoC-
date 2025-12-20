@@ -2,7 +2,7 @@
 
 > A comprehensive tool for analyzing political discourse in the Danish Parliament (Folketinget) from 2005 to 2025 using advanced NLP and AI.
 
-[![Logo](dashboard/logo_circle.png)](http://sorenmeiner.me/)
+[![Logo](dashboard/logo_circle.png)](http://sorenmeiner.me/)2
 
 ## 📌 Usage & purpose
 **🌐 Website**: [http://sorenmeiner.me/](http://sorenmeiner.me/)
