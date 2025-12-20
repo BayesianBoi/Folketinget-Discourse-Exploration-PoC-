@@ -26,7 +26,7 @@ except ImportError:
 # from dk_politics_topics.modeling.embeddings import load_embedding_model # Helper doesn't exist
 
 # Logo path
-LOGO_PATH = Path(__file__).parent / "logo.png"
+LOGO_PATH = Path(__file__).parent / "logo_circle.png"
 
 st.set_page_config(
     page_title="Folketinget Discourse Explorer", 
@@ -150,7 +150,12 @@ def _sort_topics_alphabetically(topic_labels: list) -> list:
     return sorted(topic_labels, key=lambda x: _get_topic_display_name(x).lower())
 
 def main():
-    st.title("🇩🇰 Folketinget Discourse Explorer")
+    col1, col2 = st.columns([1, 8])
+    with col1:
+        if LOGO_PATH.exists():
+            st.image(str(LOGO_PATH), width=80)
+    with col2:
+        st.title("Folketinget Discourse Explorer")
     
     df, labels, terms, cfg, party_map, df_docs, df_topics, metadata = load_data()
     
