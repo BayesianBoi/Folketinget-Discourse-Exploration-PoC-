@@ -25,7 +25,14 @@ except ImportError:
     from agent import AIAgent
 # from dk_politics_topics.modeling.embeddings import load_embedding_model # Helper doesn't exist
 
-st.set_page_config(page_title="Folketinget Discourse Explorer", layout="wide")
+# Logo path
+LOGO_PATH = Path(__file__).parent / "logo.png"
+
+st.set_page_config(
+    page_title="Folketinget Discourse Explorer", 
+    layout="wide",
+    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "🇩🇰"
+)
 
 @st.cache_resource
 def load_data():
@@ -151,7 +158,7 @@ def main():
         st.error("Data not found. Please run the pipeline first!")
         return
 
-    tabs = st.tabs(["📊 Overview", "🏛️ Party Analysis", "🔎 Semantic Search", "📝 Topic Inspection", "🤖 AI Analyst (BETA)"])
+    tabs = st.tabs(["📊 Overview", "🔎 Semantic Search", "📝 Topic Inspection", "🏛️ Party Analysis", "🤖 AI Analyst"])
 
     # --- TAB 1: OVERVIEW ---
     with tabs[0]:
@@ -267,8 +274,8 @@ def main():
             st.markdown("**Parties**")
             st.caption(", ".join(corpus_parties))
 
-    # --- TAB 2: PARTY ANALYSIS ---
-    with tabs[1]:
+    # --- TAB 4: PARTY ANALYSIS ---
+    with tabs[3]:
         st.header("Party Profiles")
 
         all_parties = sorted(df["party_name"].unique())
@@ -420,8 +427,8 @@ def main():
             else:
                 st.info("Sentiment data not available for polarization analysis.")
 
-    # --- TAB 3: SEMANTIC SEARCH ---
-    with tabs[2]:
+    # --- TAB 2: SEMANTIC SEARCH ---
+    with tabs[1]:
         st.header("Semantic Search")
         st.caption("Find speeches by meaning (relevance). This does not measure support/opposition.")
         st.info("Tip: Always read the quotes. High relevance ≠ agreement.")
@@ -732,8 +739,8 @@ def main():
 
         render_semantic_search()
 
-    # --- TAB 4: TOPIC INSPECTION ---
-    with tabs[3]:
+    # --- TAB 3: TOPIC INSPECTION ---
+    with tabs[2]:
         st.header("Inspect Topic Content")
         all_topics_sorted = _sort_topics_alphabetically(df["topic_label"].unique().tolist())
         target_topic_label = st.selectbox(
@@ -790,7 +797,7 @@ def main():
                 st.markdown(f"**{row['party']} ({row['time_bin']})**: {row['text']}")
                 st.divider()
 
-    # --- TAB 5: AI AGENT ---
+    # --- TAB 5: AI ANALYST ---
     with tabs[4]:
         st.header("Ask the AI Political Analyst")
         st.info("This is a writing/thinking aid. It may be wrong—verify claims by checking the underlying speeches and charts.")
@@ -826,6 +833,25 @@ def main():
             with st.chat_message("assistant"):
                 st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
+
+    # --- FOOTER ---
+    st.divider()
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(
+            """
+            <div style="text-align: center; color: #666; font-size: 0.9em;">
+                <p><strong>Folketinget Discourse Explorer</strong></p>
+                <p>Created by <strong>Niels Værbak</strong> & <strong>Søren Meiner</strong></p>
+                <p style="font-size: 0.85em;">
+                    ⚠️ <em>This tool is for exploratory research purposes. 
+                    Results should be verified against primary sources before being used in academic or professional contexts.
+                    The AI features may produce inaccurate information.</em>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 if __name__ == "__main__":
     main()

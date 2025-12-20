@@ -417,12 +417,12 @@ Instructions:
 IMPORTANT: Do NOT make up data. Only use what's in the context above."""
 
         response = self.client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5-search-mini",  # Web search enabled model
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_query}
             ],
-            temperature=1
+            temperature=0.7
         )
         
         return response.choices[0].message.content
