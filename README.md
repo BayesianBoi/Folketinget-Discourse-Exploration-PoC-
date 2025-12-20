@@ -2,9 +2,11 @@
 
 > A comprehensive tool for analyzing political discourse in the Danish Parliament (Folketinget) from 2005 to 2025 using advanced NLP and AI.
 
-![Logo](dashboard/logo_circle.png)
+[![Logo](dashboard/logo_circle.png)](http://sorenmeiner.me/)
 
 ## 📌 Usage & purpose
+**🌐 Website**: [http://sorenmeiner.me/](http://sorenmeiner.me/)
+
 This tool is designed for **exploratory research** into Danish political rhetoric. It allows users to:
 - **Track semantic trends** over time (e.g., when did "Sustainability" become a major topic?).
 - **Analyze party positions** without reading thousands of speeches.
