@@ -34,6 +34,18 @@ st.set_page_config(
     page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "🇩🇰"
 )
 
+# Hide Streamlit settings/footer
+st.markdown("""
+<style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .block-container {
+        padding-top: 1rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 @st.cache_resource
 def load_data():
     cfg = DEFAULT_CONFIG
@@ -163,7 +175,7 @@ def main():
         st.error("Data not found. Please run the pipeline first!")
         return
 
-    tabs = st.tabs(["📊 Overview", "🔎 Semantic Search", "📝 Topic Inspection", "🏛️ Party Analysis", "🤖 AI Analyst"])
+    tabs = st.tabs(["📊 Overview", "🔎 Semantic Search", "📝 Topic Inspection", "🏛️ Party Analysis", "🤖 AI Analyst (BETA)"])
 
     # --- TAB 1: OVERVIEW ---
     with tabs[0]:

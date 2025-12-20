@@ -11,7 +11,7 @@ pip install --upgrade pip
 
 # Install the requirements
 echo "Installing the requirements"
-pip install -r "/work/Exam/requirements.txt"
+pip install -r "requirements.txt"
 
 # Download the danish model
 echo "Downloading spacy Danish model..."

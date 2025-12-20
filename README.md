@@ -1,86 +1,133 @@
-# Danish Political Discourse: Topeax Pipeline (2005–2025)
+# 🇩🇰 Folketinget Discourse Explorer
 
-End-to-end, reproducible pipeline for Danish Folketinget speeches using `turftopic.Topeax`, with offline batch processing now and an API-ready service layer for later (Flask/FastAPI).
+> A comprehensive tool for analyzing political discourse in the Danish Parliament (Folketinget) from 2005 to 2025 using advanced NLP and AI.
 
-## Quick Start
+![Logo](dashboard/logo_circle.png)
+
+## 📌 Usage & purpose
+This tool is designed for **exploratory research** into Danish political rhetoric. It allows users to:
+- **Track semantic trends** over time (e.g., when did "Sustainability" become a major topic?).
+- **Analyze party positions** without reading thousands of speeches.
+- **Find specific rhetoric** using semantic search (finding meaning, not just keywords).
+- **Interact with an AI Analyst** to ask complex questions about the data.
+
+It bridges the gap between quantitative data science (topic modeling, embeddings) and qualitative political science.
+
+## 💾 Data Availability
+The pipeline is designed to work with the **Danish Legislative Speech Corpus** by Frederik Hjorth (University of Copenhagen). 
+- **Original Dataset**: [Danish Legislative Speech Corpus V2 (Harvard Dataverse)](https://doi.org/10.7910/DVN/PNCBKF)
+- **Format**: The pipeline expects the `.RDS` or `.parquet` file from this dataset.
+
+---
+
+## 🖥️ Dashboard Features
+
+The dashboard consists of five main analysis modules:
+
+### 1. 📊 Overview
+ **The "Big Picture" view.**
+- **Discourse Over Time:** Visualize the rise and fall of specific topics (e.g., "Minkaflivning", "Skattepolitik") over the last two decades.
+- **Who owns the topic?** Select a single topic to see which parties drive the debate. Does *Venstre* own the tax debate? Does *SF* own the environment debate?
+
+### 2. 🔎 Semantic Search
+ **Find speeches by meaning.**
+- Unlike standard keyword search, this uses **vector embeddings** to find speeches that are *conceptually* similar to your query.
+- Example: Searching for *"økonomisk ansvarlighed"* might find speeches about "budgetoverholdelse" or "statsgæld" even if the exact words aren't used.
+- **Features:**
+    - Filter by year range and party.
+    - Download results as CSV.
+
+### 3. 📝 Topic Inspection
+ **Deep dive into the model's topics.**
+- **Top Terms:** See the words that define a topic.
+- **Representative Speeches:** Read the actual speeches that triggered this topic to verify the model's accuracy.
+- **Word Clouds:** Visual representation of the topic's vocabulary.
+
+### 4. 🏛️ Party Analysis
+ **Profile specific parties.**
+- **Topic Heatmap:** A visual matrix showing which topics different parties focus on. Who talks about what?
+- **Sentiment Analysis:** (Beta) See the emotional tone of parties towards specific topics (Positive/Neutral/Negative).
+
+### 5. 🤖 AI Analyst (BETA)
+ **Ask questions in natural language.**
+- Powered by OpenAI GPT-5 models, this agent has access to the processed data.
+- **Capabilities:**
+    - "Compare Socialdemokratiet and Venstre on tax policy in 2019."
+    - "When was the peak discussion about the Mink scandal?"
+    - "Give me a summary of SF's stance on climate."
+- **Note:** Always verify AI claims against the charts and primary data.
+
+---
+
+## 🚀 Replication Guide
+
+Follow these steps to reproduce the entire analysis from raw data to dashboard.
+
+### 1. Prerequisites
+- Python 3.10+
+- A valid OpenAI API key (for the AI Agent and topic labelling)
+- The raw Folketinget corpus (e.g., `Corpus_speeches_denmark.RDS` or parquet format)
+
+### 2. Installation
 ```bash
-python -m venv .venv
+# Clone the repository
+git clone <repo-url>
+cd Folketinget-Discourse-Exploration-PoC-
+
+# Run the setup script (creates venv and installs dependencies)
+bash scripts/setup.sh
+```
+
+### 3. Setup Configuration
+1.  Place your raw data file in `data/raw/` (e.g., `data/raw/speeches.parquet`).
+2.  Create a `.env` file in the root directory:
+    ```env
+    OPENAI_API_KEY=sk-your-key-here
+    ```
+
+### 4. Run the Pipeline
+The entire data processing pipeline can be run with a single script:
+
+```bash
+# Activate the environment first
 source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
 
-# Pipeline
-python scripts/00_validate_data.py
-python scripts/01_preprocess.py
-python scripts/02_fit_topeax.py
-python scripts/03_analyze_prevalence.py
-python scripts/04_sentiment_controversial.py
-python scripts/05_build_exports.py
+# Run the full pipeline (steps 00-05)
+bash scripts/run_pipeline.sh
 ```
 
-## Data Expectations
-- Place the Folketinget corpus under `data/raw/` (default filename: `Corpus_speeches_denmark.RDS`). CSV/Parquet also work.
-- Canonical columns after validation: `doc_id`, `date`, `year`, `party`, `text`, optional `source`.
-- Party codes are normalized deterministically (see `CorpusConfig.party_normalization`).
-- Default time window is **2005–2025**; adjust in `config.py`. Earlier years are allowed but risk:
-  1. Sparse corpus size,
-  2. Format drift in transcript files,
-  3. Language drift (Danish spelling/terminology).
+Alternatively, you can run individual steps manually if needed:
 
-## What the pipeline produces
-- `artifacts/exports/topics.json` – topic terms + labels
-- `artifacts/exports/doc_topics.parquet` – doc-topic weights
-- `artifacts/exports/prevalence_party_year.parquet` – per-party topic prevalence
-- `artifacts/exports/controversial_sentiment_party_year.parquet` – sentiment on immigration/taxation/climate
-- `artifacts/exports/metadata.json` – config + corpus stats
-- `artifacts/plots/*.html` – Plotly HTML (prevalence, party comparison, controversial sentiment)
-- `artifacts/exports/topic_details.csv` – topic_id, label, doc_count, top_terms (legacy-style summary)
-- `artifacts/exports/party_topic_matrix.csv` – party vs. dominant topic counts (legacy-style)
-- `artifacts/exports/summary_statistics.txt` – compact model/corpus summary
+### 5. Launch Dashboard
+Once the exports are ready in `artifacts/exports/`, launch the app:
 
-## Repo Structure (current)
-```
-src/
-  dk_politics_topics/
-    config.py                   # dataclasses with defaults + paths
-    io/                         # loaders + schema validation
-    preprocess/                 # cleaning + time bins
-    modeling/                   # embeddings + Topeax wrapper
-    analysis/                   # prevalence, controversial mapping, sentiment
-    viz/                        # plotly builders
-    service/                    # API-ready pure functions + repository access
-    utils/                      # logging, caching, randomness helpers
-scripts/00-05_*.py             # pipeline steps
-legacy/                        # previous BERTopic pipeline (kept intact)
-artifacts/                     # models, embeddings, exports, plots (gitignored)
-data/{raw,interim,processed}   # datasets (gitignored)
-tests/                         # pytest suite for schemas/bins/controversial/sentiment
-agents.md                      # roles & hand-offs
-```
-
-## Pipeline Stages
-- **00_validate_data**: load corpus (RDS/CSV/Parquet), normalize columns/party codes, basic validation, save `data/interim/validated.parquet`.
-- **01_preprocess**: light cleaning (whitespace, boilerplate removal), time bins (year by default), save `data/processed/preprocessed.parquet`.
-- **02_fit_topeax**: cache embeddings (SentenceTransformers), fit `turftopic.Topeax` (fallback LDA if Topeax unavailable), save model + doc-topic matrix + topics JSON. Default encoder: `all-MiniLM-L6-v2` (small, fast). If you prefer a stronger model and can tolerate longer runtimes, set `EmbeddingConfig.model_name` to `intfloat/multilingual-e5-base`; the pipeline falls back to `all-MiniLM-L6-v2` automatically.
-- **03_analyze_prevalence**: per-party, per-time-bin topic prevalence.
-- **04_sentiment_controversial**: match topics to immigration/taxation/climate seeds (Danish variants included), score sentiment (lexicon fallback; pluggable for HF models), aggregate by party/time.
-- **05_build_exports**: assemble metadata + HTML plots for future UI/API consumption, plus interpretable CSV summaries.
-
-## Future API Boundary
-`src/dk_politics_topics/service/endpoints.py` exposes pure functions for later routes:
-- `get_parties()`
-- `get_topics()`
-- `get_prevalence(party, topic_id, from, to, bin)`
-- `compare_parties(party_a, party_b, from, to)`
-- `get_controversial_sentiment(area, from, to)`
-
-These operate on artifacts via `service/repository.py` so Flask/FastAPI can be added without refactors.
-
-## Testing
 ```bash
-pytest
+streamlit run dashboard/app.py
 ```
-Tests cover schema validation, time binning, controversial topic matching, and sentiment interface behavior (lexicon fallback; no heavy models needed).
 
-## Legacy Code
-The previous BERTopic-based approach is preserved under `legacy/`. It is not used by the current pipeline but should remain for reference/comparisons.
+---
+
+## 🛠️ Technical Implementation
+
+### Core Technologies
+- **Topic Modeling**: `Turftopic` with Topeax
+- **Embeddings**: `intfloat/multilingual-e5-base` (State-of-the-art multilingual model)
+- **Dimensionality Reduction**: UMAP
+- **Backend/Processing**: Python, Pandas, Polars (for speed)
+- **Frontend**: Streamlit
+- **Visualization**: Plotly Interactive Charts
+
+### Folder Structure
+- `src/`: Core logic and data processing modules.
+- `scripts/`: Executable pipeline steps (00-05).
+- `dashboard/`: Streamlit application code.
+- `artifacts/`: Generated models, plots, and data exports.
+- `data/`: Raw and processed intermediate data.
+
+---
+
+## 👥 Authors & Credits
+
+**Created by:** Niels Værbak & Søren Meiner
+
+*Disclaimer: This tool is intended for exploratory research purposes. Topic models and AI interpretations are probabilistic and should be verified against primary sources.*
