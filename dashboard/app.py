@@ -150,7 +150,7 @@ def _sort_topics_alphabetically(topic_labels: list) -> list:
     return sorted(topic_labels, key=lambda x: _get_topic_display_name(x).lower())
 
 def main():
-    col1, col2 = st.columns([1, 8])
+    col1, col2 = st.columns([1, 20])
     with col1:
         if LOGO_PATH.exists():
             st.image(str(LOGO_PATH), width=80)

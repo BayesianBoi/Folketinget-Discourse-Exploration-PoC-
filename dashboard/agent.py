@@ -414,10 +414,12 @@ Instructions:
 5. Be honest if data is missing or insufficient - suggest what might help.
 6. Keep your response concise but informative.
 
-IMPORTANT: Do NOT make up data. Only use what's in the context above."""
+IMPORTANT: Do NOT make up data. Only use what's in the context above.
+If the information is not in the context, YOU MUST USE THE WEB SEARCH TOOL to find the answer.
+Do not guess. Search for facts if needed."""
 
         response = self.client.chat.completions.create(
-            model="gpt-5-mini",  
+            model="gpt-5-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_query}
