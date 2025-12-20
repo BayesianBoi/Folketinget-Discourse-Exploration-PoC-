@@ -407,25 +407,25 @@ Here is the relevant data retrieved from the database:
 ---
 
 Instructions:
-1. Analyze the data and answer the user's question based ONLY on what's provided above.
-2. If the data doesn't contain what the user asked for, explain what IS available and suggest related queries.
+1. Analyze the data and answer the user's question based on the provided data.
+2. Use your internal knowledge of Danish political history to explain *why* certain topics might spike in specific years (e.g., relating spikes to elections, policy changes, or major events).
 3. Format numbers nicely and explain what sentiment scores mean (-1 = negative, 0 = neutral, +1 = positive).
-4. If comparing years/parties, highlight key differences in the data.
-5. Be honest if data is missing or insufficient - suggest what might help.
-6. Keep your response concise but informative.
+4. If the data explicitly contradicts your internal knowledge, trust the data provided above.
+5. Be honest if data is missing.
 
-IMPORTANT: Do NOT make up data. Only use what's in the context above.
-If the information is not in the context, YOU MUST USE THE WEB SEARCH TOOL to find the answer.
-Do not guess. Search for facts if needed."""
+IMPORTANT: Do NOT make up events. Only use the provided data or your strong internal knowledge for well-known historical facts."""
 
-        response = self.client.chat.completions.create(
-            model="gpt-5-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_query}
-            ],
-            tools=[{"type": "web_search"}],
-            temperature=1
-        )
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-5-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_query}
+                ],
+                temperature=1
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Error generating response: {str(e)}"
         
         return response.choices[0].message.content
