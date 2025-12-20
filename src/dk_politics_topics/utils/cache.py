@@ -31,17 +31,17 @@ def save_numpy(array: np.ndarray, path: Path) -> None:
     logger.info("Saved numpy cache to %s", path)
 
 
-def load_numpy(path: Path) -> np.ndarray:
-    logger.info("Loading numpy cache from %s", path)
-    return np.load(path, allow_pickle=False)
+def load_numpy(path: Path, mmap_mode: Optional[str] = None) -> np.ndarray:
+    logger.info("Loading numpy cache from %s (mmap_mode=%s)", path, mmap_mode)
+    return np.load(path, allow_pickle=False, mmap_mode=mmap_mode)
 
 
 def cached_path(base_dir: Path, name: str, ext: str) -> Path:
     return base_dir / f"{name}.{ext}"
 
 
-def maybe_load_numpy(base_dir: Path, name: str) -> Optional[np.ndarray]:
+def maybe_load_numpy(base_dir: Path, name: str, mmap_mode: Optional[str] = None) -> Optional[np.ndarray]:
     path = cached_path(base_dir, name, "npy")
     if path.exists():
-        return load_numpy(path)
+        return load_numpy(path, mmap_mode=mmap_mode)
     return None

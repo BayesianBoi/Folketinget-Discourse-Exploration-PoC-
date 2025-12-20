@@ -103,7 +103,7 @@ def get_semantic_search_model(cfg, n_docs: int):
     expected_path = cfg.paths.embeddings_dir / f"{expected_cache_name}.npy"
 
     # Preferred: load the exact cache file produced by `embed_texts(...)`.
-    embeddings = maybe_load_numpy(cfg.paths.embeddings_dir, expected_cache_name)
+    embeddings = maybe_load_numpy(cfg.paths.embeddings_dir, expected_cache_name, mmap_mode="c")
 
     loaded_path = expected_path if embeddings is not None else None
     found_files = []
@@ -112,10 +112,10 @@ def get_semantic_search_model(cfg, n_docs: int):
     if embeddings is None and cfg.paths.embeddings_dir.exists():
         for p in sorted(cfg.paths.embeddings_dir.glob("*.npy")):
             try:
-                arr = np.load(p, mmap_mode="r")
+                arr = np.load(p, mmap_mode="c")
                 found_files.append({"path": str(p), "shape": tuple(arr.shape), "dtype": str(arr.dtype)})
                 if len(arr.shape) == 2 and int(arr.shape[0]) == int(n_docs):
-                    embeddings = np.load(p)
+                    embeddings = arr
                     loaded_path = p
                     break
             except Exception:
@@ -129,6 +129,18 @@ def get_semantic_search_model(cfg, n_docs: int):
     }
 
     return model, embeddings, info
+
+    return model, embeddings, info
+
+def _get_topic_display_name(full_label: str) -> str:
+    """Extract just the topic name without the number prefix (e.g., '5: Climate' -> 'Climate')."""
+    if ":" in full_label:
+        return full_label.split(":", 1)[1].strip()
+    return full_label
+
+def _sort_topics_alphabetically(topic_labels: list) -> list:
+    """Sort topic labels alphabetically by their display name (ignoring the number prefix)."""
+    return sorted(topic_labels, key=lambda x: _get_topic_display_name(x).lower())
 
 def main():
     st.title("🇩🇰 Folketinget Discourse Explorer")
@@ -145,8 +157,15 @@ def main():
     with tabs[0]:
         st.header("Discourse Over Time")
 
-        all_topics = sorted(df["topic_label"].unique())
-        selected_topics = st.multiselect("Select Topics to Compare", all_topics, default=all_topics[:3])
+        all_topics = _sort_topics_alphabetically(df["topic_label"].unique().tolist())
+        # Default to "Minkaflivning under COVID" if it exists
+        default_topic = [t for t in all_topics if "minkaflivning" in t.lower()][:1] or all_topics[:1]
+        selected_topics = st.multiselect(
+            "Select Topics to Compare", 
+            all_topics, 
+            default=default_topic,
+            format_func=_get_topic_display_name
+        )
 
         if selected_topics:
             agg = (
@@ -172,7 +191,8 @@ def main():
             # FEATURE 1: Temporal Party Breakdown (Who owns the topic?)
             if len(selected_topics) == 1:
                 target_topic = selected_topics[0]
-                st.subheader(f"Who owns the debate on '{target_topic}'?")
+                target_display = _get_topic_display_name(target_topic)
+                st.subheader(f"Who owns the debate on '{target_display}'?")
 
                 single_topic_df = df[df["topic_label"] == target_topic]
                 party_time = (
@@ -181,12 +201,29 @@ def main():
                     .reset_index(name="count")
                 )
 
+                # Create complete time series with all years and all parties
+                all_years = sorted(df["time_bin"].unique())
+                all_parties_in_topic = party_time["party_name"].unique().tolist()
+                
+                # Create a complete index of all year-party combinations
+                from itertools import product
+                complete_index = pd.DataFrame(
+                    list(product(all_years, all_parties_in_topic)),
+                    columns=["time_bin", "party_name"]
+                )
+                
+                # Merge with actual data and fill missing with 0
+                party_time = complete_index.merge(
+                    party_time, on=["time_bin", "party_name"], how="left"
+                )
+                party_time["count"] = party_time["count"].fillna(0).astype(int)
+
                 fig_vol = px.line(
                     party_time,
                     x="time_bin",
                     y="count",
                     color="party_name",
-                    title=f"Volume of Speeches on '{target_topic}' by Party",
+                    title=f"Volume of Speeches on '{target_display}' by Party",
                     line_group="party_name",
                     markers=True,
                 )
@@ -238,57 +275,112 @@ def main():
         sel_parties = st.multiselect(
             "Select Parties",
             all_parties,
-            default=all_parties[: min(4, len(all_parties))],
+            default=all_parties,  # Default to all parties
         )
 
         if sel_parties:
             sub = df[df["party_name"].isin(sel_parties)]
 
             st.subheader("Who talks about what?")
+            
+            # Let user select which topics to show
+            all_topics_for_filter = _sort_topics_alphabetically(sub["topic_label"].unique().tolist())
+            selected_topics_for_heatmap = st.multiselect(
+                "Select topics to display (leave empty for all)",
+                all_topics_for_filter,
+                default=[],
+                format_func=_get_topic_display_name,
+                help="Filter which topics appear in the heatmap. Leave empty to show all."
+            )
+            
+            # Apply topic filter if any selected
+            if selected_topics_for_heatmap:
+                sub_filtered = sub[sub["topic_label"].isin(selected_topics_for_heatmap)]
+            else:
+                sub_filtered = sub
 
             heatmap_data = (
-                sub.groupby(["topic_label", "party_name"])
+                sub_filtered.groupby(["topic_label", "party_name"])
                 .agg(
                     count=("doc_id", "count"),
                     sentiment=("sentiment", "mean")
-                    if "sentiment" in sub.columns
+                    if "sentiment" in sub_filtered.columns
                     else ("doc_id", lambda x: 0),
                 )
                 .reset_index()
             )
+            
+            # Add display names for y-axis
+            heatmap_data["topic_display"] = heatmap_data["topic_label"].apply(_get_topic_display_name)
 
-            z_data = heatmap_data.pivot(index="topic_label", columns="party_name", values="count").fillna(0)
+            z_data = heatmap_data.pivot(index="topic_display", columns="party_name", values="count").fillna(0)
             z_data_norm = z_data.div(z_data.sum(axis=0), axis=1)
-
-            s_data = heatmap_data.pivot(index="topic_label", columns="party_name", values="sentiment").fillna(0)
+            
+            # Calculate party totals for the calculation breakdown
+            party_totals = z_data.sum(axis=0)
+            
+            # Use sentiment for color instead of count share
+            s_data = heatmap_data.pivot(index="topic_display", columns="party_name", values="sentiment").fillna(0)
             s_aligned = s_data.reindex(index=z_data_norm.index, columns=z_data_norm.columns).fillna(0)
-            text_matrix = s_aligned.map(lambda x: f"{x:.2f}")
+            
+            # Create text matrix showing share with calculation: "15.2% (152/1000)"
+            def format_share_with_calc(row_idx, col_idx):
+                count = int(z_data.iloc[row_idx, col_idx])
+                total = int(party_totals.iloc[col_idx])
+                pct = z_data_norm.iloc[row_idx, col_idx]
+                return f"{pct:.1%} ({count:,}/{total:,})"
+            
+            share_matrix = pd.DataFrame(
+                [[format_share_with_calc(i, j) for j in range(len(z_data.columns))] for i in range(len(z_data.index))],
+                index=z_data.index,
+                columns=z_data.columns
+            )
+            
+            # Custom Red-White-Green colorscale for sentiment
+            sentiment_colorscale = [
+                [0.0, "rgb(215, 48, 39)"],      # Red for -1
+                [0.25, "rgb(252, 141, 89)"],    # Light red for -0.5
+                [0.5, "rgb(255, 255, 255)"],    # White for 0
+                [0.75, "rgb(145, 207, 96)"],    # Light green for 0.5
+                [1.0, "rgb(26, 152, 80)"],      # Green for 1
+            ]
 
             fig_heat = go.Figure(
                 data=go.Heatmap(
-                    z=z_data_norm.values,
-                    x=z_data_norm.columns,
-                    y=z_data_norm.index,
-                    colorscale="Blues",
-                    text=text_matrix.values,
-                    hovertemplate="<b>%{y}</b><br>%{x}<br>Share: %{z:.1%}<br>Avg Sentiment: %{text}<extra></extra>",
+                    z=s_aligned.values,  # Color by sentiment
+                    x=s_aligned.columns,
+                    y=s_aligned.index,
+                    colorscale=sentiment_colorscale,
+                    zmin=-1,  # Force scale to -1
+                    zmax=1,   # Force scale to 1
+                    text=share_matrix.values,  # Pre-formatted share with calculation
+                    hovertemplate="<b>%{y}</b><br>%{x}<br>Share: %{text}<br>Avg Sentiment: %{z:.2f}<extra></extra>",
+                    colorbar=dict(
+                        title="Sentiment",
+                        tickvals=[-1, -0.5, 0, 0.5, 1],
+                        ticktext=["-1 (Negative)", "-0.5", "0 (Neutral)", "0.5", "1 (Positive)"],
+                    ),
                 )
             )
             fig_heat.update_layout(
-                title="Topic Share per Party (Hover for Sentiment)",
+                title="Topic Sentiment by Party (Red=Negative, White=Neutral, Green=Positive)",
                 xaxis_title=None,
                 yaxis_title=None,
+                height=max(400, len(s_aligned) * 25),  # Dynamic height based on topics
             )
-            st.plotly_chart(fig_heat, width="stretch")
+            st.plotly_chart(fig_heat, use_container_width=True)
 
             st.divider()
             st.subheader("Polarization & Sentiment")
+            all_topics_sorted = _sort_topics_alphabetically(df["topic_label"].unique().tolist())
             pol_topic = st.selectbox(
                 "Select Topic to Analyze Sentiment Split",
-                sorted(df["topic_label"].unique()),
+                all_topics_sorted,
+                format_func=_get_topic_display_name,
             )
 
             pol_df = df[df["topic_label"] == pol_topic]
+            pol_topic_display = _get_topic_display_name(pol_topic)
             if "sentiment" in pol_df.columns:
                 party_sent = (
                     pol_df.groupby("party_name")["sentiment"]
@@ -296,17 +388,35 @@ def main():
                     .reset_index()
                     .sort_values("sentiment")
                 )
+                
+                # Custom Red-White-Green colorscale for sentiment
+                sentiment_colorscale = [
+                    [0.0, "rgb(215, 48, 39)"],      # Red for -1
+                    [0.25, "rgb(252, 141, 89)"],    # Light red for -0.5
+                    [0.5, "rgb(255, 255, 255)"],    # White for 0
+                    [0.75, "rgb(145, 207, 96)"],    # Light green for 0.5
+                    [1.0, "rgb(26, 152, 80)"],      # Green for 1
+                ]
+                
                 fig_pol = px.bar(
                     party_sent,
                     x="sentiment",
                     y="party_name",
                     orientation="h",
                     color="sentiment",
-                    color_continuous_scale="RdBu",
-                    title=f"Sentiment Polarity on '{pol_topic}' (Red=Negative, Blue=Positive)",
+                    color_continuous_scale=sentiment_colorscale,
+                    range_color=[-1, 1],  # Force color range to -1 to 1
+                    title=f"Sentiment on '{pol_topic_display}' (Red=Negative, White=Neutral, Green=Positive)",
                     range_x=[-1, 1],
                 )
-                st.plotly_chart(fig_pol, width="stretch")
+                fig_pol.update_layout(
+                    coloraxis_colorbar=dict(
+                        title="Sentiment",
+                        tickvals=[-1, -0.5, 0, 0.5, 1],
+                        ticktext=["-1", "-0.5", "0", "0.5", "1"],
+                    ),
+                )
+                st.plotly_chart(fig_pol, use_container_width=True)
             else:
                 st.info("Sentiment data not available for polarization analysis.")
 
@@ -316,9 +426,14 @@ def main():
         st.caption("Find speeches by meaning (relevance). This does not measure support/opposition.")
         st.info("Tip: Always read the quotes. High relevance ≠ agreement.")
 
-        query_a = st.text_input("Query", placeholder="e.g., skattelettelser")
+        with st.form("search_form"):
+            query_a = st.text_input("Query", placeholder="e.g., skattelettelser")
+            submitted = st.form_submit_button("Search")
 
         def render_semantic_search() -> None:
+            if not submitted:
+                return
+
             if not query_a:
                 st.info("Enter a query to run semantic search.")
                 return
@@ -375,8 +490,13 @@ def main():
                 return
 
             with st.expander("Filters (optional)"):
-                topics_available = sorted(df_slice["topic_label"].unique())
-                selected_topics = st.multiselect("Restrict to topics", topics_available, default=[])
+                topics_available = _sort_topics_alphabetically(df_slice["topic_label"].unique().tolist())
+                selected_topics = st.multiselect(
+                    "Restrict to topics", 
+                    topics_available, 
+                    default=[],
+                    format_func=_get_topic_display_name
+                )
 
                 parties_available = sorted(df_slice["party_name"].unique())
                 focus_parties = st.multiselect(
@@ -399,19 +519,27 @@ def main():
                 st.warning("No speeches found after applying filters.")
                 return
 
-            df_docs_slice = df_docs.iloc[candidate_idx]
-            emb_tensor = torch.from_numpy(embeddings) if not isinstance(embeddings, torch.Tensor) else embeddings
+            with st.spinner("Searching millions of words..."):
+                model, embeddings, emb_info = get_semantic_search_model(cfg, n_docs=len(df_docs))
 
-            query_text = query_a.strip()
-            query_for_embedding = query_text
-            if "e5" in (cfg.embedding.model_name or "").lower():
-                query_for_embedding = f"query: {query_text}"
+                if embeddings is None or int(getattr(embeddings, "shape", [0])[0]) != int(len(df_docs)):
+                    st.warning("⚠️ Could not align embeddings with document list.")
+                    # Fallback logic could go here, but for now we return
+                    return
 
-            query_vecs = model.encode([query_for_embedding], convert_to_tensor=True)
+                df_docs_slice = df_docs.iloc[candidate_idx]
+                emb_tensor = torch.from_numpy(embeddings) if not isinstance(embeddings, torch.Tensor) else embeddings
 
-            idx_t = torch.as_tensor(candidate_idx, dtype=torch.long, device=query_vecs.device)
-            emb_slice = emb_tensor.to(query_vecs.device).index_select(0, idx_t)
-            score_mat = util.cos_sim(query_vecs, emb_slice).cpu().numpy()
+                query_text = query_a.strip()
+                query_for_embedding = query_text
+                if "e5" in (cfg.embedding.model_name or "").lower():
+                    query_for_embedding = f"query: {query_text}"
+
+                query_vecs = model.encode([query_for_embedding], convert_to_tensor=True)
+
+                idx_t = torch.as_tensor(candidate_idx, dtype=torch.long, device=query_vecs.device)
+                emb_slice = emb_tensor.to(query_vecs.device).index_select(0, idx_t)
+                score_mat = util.cos_sim(query_vecs, emb_slice).cpu().numpy()
 
             def _compute_outputs(scores: np.ndarray) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
                 scores = np.asarray(scores, dtype=np.float64)
@@ -607,10 +735,19 @@ def main():
     # --- TAB 4: TOPIC INSPECTION ---
     with tabs[3]:
         st.header("Inspect Topic Content")
-        target_topic_label = st.selectbox("Select Topic", sorted(df["topic_label"].unique()))
+        all_topics_sorted = _sort_topics_alphabetically(df["topic_label"].unique().tolist())
+        target_topic_label = st.selectbox(
+            "Select Topic", 
+            all_topics_sorted,
+            format_func=_get_topic_display_name
+        )
 
         target_tid = int(target_topic_label.split(":")[0])
         terms_list = terms.get(str(target_tid), [])
+        
+        # Show total speech count for this topic
+        speech_count = len(df[df["top_topic_id"] == target_tid])
+        st.metric("Total Speeches", f"{speech_count:,}")
 
         st.subheader("Top Terms (Word Cloud)")
 
@@ -683,7 +820,7 @@ def main():
                 st.markdown(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
 
-            with st.spinner("Analyzing data..."):
+            with st.spinner("Analyzing with AI..."):
                 response = st.session_state.agent.answer(prompt)
 
             with st.chat_message("assistant"):

@@ -1,0 +1,20 @@
+[Unit]
+Description=Streamlit Dashboard
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/Folketinget-Discourse-Exploration-PoC-
+# Use the virtual environment's streamlit explicitly
+ExecStart=/root/Folketinget-Discourse-Exploration-PoC-/venv/bin/streamlit run dashboard/app.py --server.port 80 --server.address 0.0.0.0
+# Restart automatically if it crashes
+Restart=always
+# Wait 5 seconds before restarting to prevent rapid looping
+RestartSec=5
+
+# Output logs to system journal
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
