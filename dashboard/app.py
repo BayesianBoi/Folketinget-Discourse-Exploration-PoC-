@@ -873,6 +873,14 @@ def main():
             <div style="text-align: center; color: #666; font-size: 0.9em;">
                 <p><strong>Folketinget Discourse Explorer</strong></p>
                 <p>Created by <strong>Niels Værbak</strong> & <strong>Søren Meiner</strong></p>
+                <p style="font-size: 0.8em; margin-top: 0.5em;">
+                    Powered by 
+                    <a href="https://github.com/x-tabdeveloping/turftopic" target="_blank">Turftopic</a> · 
+                    <a href="https://github.com/x-tabdeveloping/turftopic" target="_blank">Topeax</a> · 
+                    <a href="https://huggingface.co/intfloat/multilingual-e5-base" target="_blank">E5-base</a> · 
+                    <a href="https://openai.com/" target="_blank">GPT-5-mini</a> · 
+                    <a href="https://streamlit.io/" target="_blank">Streamlit</a>
+                </p>
                 <p style="font-size: 0.85em;">
                     ⚠️ <em>This tool is for exploratory research purposes. 
                     Results should be verified against primary sources before being used in academic or professional contexts.

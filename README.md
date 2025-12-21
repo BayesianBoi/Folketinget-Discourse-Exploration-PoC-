@@ -129,6 +129,20 @@ streamlit run dashboard/app.py
 
 ---
 
+## 🙏 Acknowledgments
+
+This project builds on the work of many open-source contributors and researchers:
+
+- **[Turftopic](https://github.com/x-tabdeveloping/turftopic)** – Topic modeling library by Márton Kardos, providing the core topic extraction framework
+- **[Topeax](https://github.com/x-tabdeveloping/turftopic)** – Topic extraction algorithm used for clustering parliamentary speeches
+- **[Streamlit](https://streamlit.io/)** – The framework powering our interactive web dashboard
+- **[Sentence-Transformers](https://www.sbert.net/)** – Enabling semantic embeddings with `intfloat/multilingual-e5-base`
+- **[OpenAI GPT-5-mini](https://openai.com/)** – Powering the AI Analyst and topic labeling features
+- **[ParlLawSpeech](https://parllawspeech.org/)** – The parliamentary speech corpus
+- **[Plotly](https://plotly.com/)** – Interactive visualization library
+
+---
+
 ## 👥 Authors & Credits
 
 **Created by:** Niels Værbak & Søren Meiner
