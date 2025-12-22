@@ -162,12 +162,14 @@ def _sort_topics_alphabetically(topic_labels: list) -> list:
     return sorted(topic_labels, key=lambda x: _get_topic_display_name(x).lower())
 
 def main():
-    col1, col2 = st.columns([1, 20], vertical_alignment="bottom")
+    col1, col2, col3 = st.columns([1, 18, 2], vertical_alignment="bottom")
     with col1:
         if LOGO_PATH.exists():
             st.image(str(LOGO_PATH), width=80)
     with col2:
         st.title("Folketinget Discourse Explorer")
+    with col3:
+        st.link_button("GitHub", "https://github.com/BayesianBoi/Folketinget-Discourse-Exploration-PoC-", icon="🔗")
     
     df, labels, terms, cfg, party_map, df_docs, df_topics, metadata = load_data()
     

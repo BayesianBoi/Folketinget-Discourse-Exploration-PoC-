@@ -129,15 +129,10 @@ class PreprocessConfig:
 
 @dataclass
 class EmbeddingConfig:
-    # Default to a public, high-quality multilingual model. If you have access to
-    # a stronger Danish encoder (e.g., chcaa/dfm-encoder-large-v1 from the
-    # Scandinavian embedding benchmark), set model_name to that.
-    # Benchmark-informed choice: multilingual-e5-base offers strong Scandinavian performance
-    # without the heavy footprint of larger TTC-L2V variants.
     model_name: str = "intfloat/multilingual-e5-base"
     model_fallback: Optional[str] = "sentence-transformers/all-MiniLM-L6-v2"
-    batch_size: int = 64  # smaller model supports larger batch on MPS
-    device: str = "auto"  # auto -> mps if available, else cuda, else cpu
+    batch_size: int = 64
+    device: str = "auto"
     cache_embeddings: bool = True
     cache_name: Optional[str] = None
     show_progress: bool = True
@@ -155,12 +150,11 @@ class TopeaxConfig:
     verbose: bool = True
     stopwords: List[str] = field(default_factory=get_combined_stopwords)
     openai_model: Optional[str] = "gpt-5-mini"
-    ignored_topics: List[int] = field(default_factory=list)  # Topics to hide in dashboard
+    ignored_topics: List[int] = field(default_factory=list)  
 
 
 @dataclass
 class SentimentConfig:
-    # Transformer-based sentiment only (no lexicon fallback).
     approach: str = "huggingface"
     huggingface_model: Optional[str] = "alexandrainst/da-sentiment-base"
     batch_size: int = 32
