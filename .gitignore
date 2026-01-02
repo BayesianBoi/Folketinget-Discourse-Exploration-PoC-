@@ -13,3 +13,7 @@ __pycache__/
 *.parquet
 .env
 docs/
+tests/
+legacy/
+.pytest_cache/
+env_to_jupyter.sh
